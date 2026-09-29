@@ -1,0 +1,49 @@
+name: mcp-jira-server
+base: core26
+version: '1.0.3'
+summary: MCP server for self-hosted Jira with PAT authentication
+description: |
+  A Model Context Protocol (MCP) server that enables AI assistants to
+  interact with self-hosted Jira instances using Personal Access Token
+  (PAT) authentication.
+
+  Features: create/read/update/delete issues, JQL search, comments,
+  assignments, project management, and status transitions.
+
+  Configuration via environment variables:
+    - JIRA_BASE_URL: your Jira instance base URL
+    - JIRA_PAT: your Personal Access Token
+    - JIRA_USER_AGENT: optional custom User-Agent header
+
+grade: devel
+confinement: strict
+
+apps:
+  mcp-jira-server:
+    command: bin/mcp-jira-server
+    plugs:
+      - network
+      - home
+
+parts:
+  mcp-jira-server:
+    plugin: nil
+    source: https://github.com/edrich13/mcp-jira-server.git
+    source-tag: "1.0.3"
+    build-snaps:
+      - node/22/stable
+    stage-snaps:
+      - node/22/stable
+    override-build: |
+      npm install
+      npm run build
+      mkdir -p "$CRAFT_PART_INSTALL/bin"
+      cp -r build "$CRAFT_PART_INSTALL/"
+      cp package.json "$CRAFT_PART_INSTALL/"
+      cd "$CRAFT_PART_INSTALL"
+      npm install --omit=dev --ignore-scripts
+      cat > "$CRAFT_PART_INSTALL/bin/mcp-jira-server" << 'SCRIPT'
+      #!/bin/sh
+      exec "$SNAP/bin/node" "$SNAP/build/index.js"
+      SCRIPT
+      chmod +x "$CRAFT_PART_INSTALL/bin/mcp-jira-server"
