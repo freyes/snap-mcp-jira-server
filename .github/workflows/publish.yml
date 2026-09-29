@@ -1,0 +1,27 @@
+name: Publish Snap
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with:
+          image: 'tonistiigi/binfmt:master'
+      - uses: canonical/snapcraft-multiarch-action@v1
+        id: snapcraft
+        with:
+          architecture: ${{ matrix.architecture }}
+      - uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+        with:
+          snap: ${{ steps.snapcraft.outputs.snap }}
+          release: edge
